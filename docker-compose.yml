@@ -1,0 +1,42 @@
+version: "3.4"
+services:
+  db:
+    image: "mysql:5.7"
+    volumes:
+      - "./data:/var/lib/mysql"
+    restart: $RESTART
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL_PASSWORD
+      MYSQL_DATABASE: $MYSQL_DATABASE
+      MYSQL_USER: $MYSQL_USERNAME
+      MYSQL_PASSWORD: $MYSQL_PASSWORD
+  pma:
+    image: "phpmyadmin/phpmyadmin:4.7.8-1"
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_PORT: $MYSQL_PORT
+      PMA_USER: $MYSQL_USERNAME
+      PMA_PASSWORD: $MYSQL_PASSWORD
+  wordpress:
+    image: "wordpress:4.9.2-php7.1-apache"
+    depends_on:
+      - db
+    privileged: true
+    ports:
+      - "$WP_PORT:80"
+    volumes:
+      - "./wp-content:/var/www/html/wp-content"
+      - "./scripts/$WP_STARTUP:/usr/local/bin/$WP_STARTUP"
+      - "./.env:/usr/local/bin/host_env.env"
+    restart: $RESTART
+    environment:
+      WORDPRESS_DB_HOST: db:$MYSQL_PORT
+      WORDPRESS_DB_USER: $MYSQL_USERNAME
+      WORDPRESS_DB_PASSWORD: $MYSQL_PASSWORD
+      WORDPRESS_DB_NAME: $MYSQL_DATABASE
+      WORDPRESS_TABLE_PREFIX: $WP_PREFIX
+    command: >
+      bash -c "sh /usr/local/bin/$WP_STARTUP
+      & docker-entrypoint.sh apache2-foreground"
